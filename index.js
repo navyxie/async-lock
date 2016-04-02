@@ -39,48 +39,66 @@ ASYNCLOCK.prototype.getTtlKey = function(lockType,lockKey){
 	return this.config.namespace+ASYNCLOCK.TTL_NAMESPACE+lockType+'_'+lockKey;
 }
 ASYNCLOCK.prototype.addLock = function(lockType,lockKey,ttl,cb){
-	var addLockFn = this.config.addLock || function(lockType,lockKey,ttl,cb){
+	if(isFunction(ttl)){
+		cb = ttl;
+		ttl = 0;
+	}
+	var that = this;
+	var addLockFn = that.config.addLock || function(lockType,lockKey,ttl,cb){
 		if(!isString(lockType)) return cb('lockType must be string');
 		if(!isString(lockKey)) return cb('lockKey must be string');
-		this.checkLock(lockType,lockKey,function(err,isLock){
+		that.checkLock(lockType,lockKey,function(err,isLock){
 			if(err){
 				return cb({code:returnConst.code.error,msg:err});
 			}else{
 				if(isLock){
-					return cb(null,{code:returnConst.code.lock,msg:this.getStoreKey(lockType,lockKey) + ' is locked.'});
+					return cb(null,{code:returnConst.code.lock,msg:that.getStoreKey(lockType,lockKey) + ' is locked.'});
 				}else{
-					this.store[this.getStoreKey(lockType,lockKey)] = true;
+					that.store[that.getStoreKey(lockType,lockKey)] = true;
 					cb(null,{code:returnConst.code.success,msg:returnConst.msg.ok});
 				}
 			}
 		})
 	}
-	addLockFn(lockType,lockKey,ttl,cb);
+	addLockFn.call(that,lockType,lockKey,ttl,cb);
 }
 ASYNCLOCK.prototype.removeLock = function(lockType,lockKey,cb){
-	var removeLockFn = this.config.removeLock || function(lockType,lockKey,cb){
-		delete this.store[this.getStoreKey(lockType,lockKey)];
-	}
-	removeLockFn(lockType,lockKey,cb);
-}
-ASYNCLOCK.prototype.checkLock = function(lockType,lockKey,cb){
-	var checkLockFn = this.config.checkLock || function(lockType,lockKey,cb){
-		return cb(null,this.store[this.getStoreKey(lockType,lockKey)]);
-	}
-}
-ASYNCLOCK.prototype.setTtl = function(lockType,lockKey,ttl,cb){
-	var setTtlFn = this.config.setTtl || function(lockType,lockKey,ttl,cb){
-		this.ttlList[this.getTtlKey(lockType,lockKey)] = Date.now() + ttl*1000;
+	var that = this;
+	var removeLockFn = that.config.removeLock || function(lockType,lockKey,cb){
+		delete that.store[that.getStoreKey(lockType,lockKey)];
 		cb(null);
 	}
-	setTtlFn(lockType,lockKey,ttl,cb);
+	removeLockFn.call(that,lockType,lockKey,cb);
+}
+ASYNCLOCK.prototype.checkLock = function(lockType,lockKey,cb){
+	var that = this;
+	var checkLockFn = that.config.checkLock || function(lockType,lockKey,cb){
+		return cb(null,that.store[that.getStoreKey(lockType,lockKey)] || false);
+	}
+	checkLockFn.call(that,lockType,lockKey,cb);
+}
+ASYNCLOCK.prototype.setTtl = function(lockType,lockKey,ttl,cb){
+	var that = this;
+	var setTtlFn = that.config.setTtl || function(lockType,lockKey,ttl,cb){
+		that.ttlList[that.getTtlKey(lockType,lockKey)] = Date.now() + ttl*1000;
+		cb(null);
+	}
+	setTtlFn.call(that,lockType,lockKey,ttl,cb);
 }
 ASYNCLOCK.prototype.getTtl = function(cb){
 	//todo:format return data
-	cb(null,this.ttlList);
+	var that = this;
+	var getTtlFn = that.config.getTtl || function(cb){
+		cb(null,that.ttlList);
+	}
+	getTtlFn.call(that,cb);
 }
 ASYNCLOCK.prototype.removeTtl = function(lockType,lockKey,cb){
-	delete this.ttlList[this.getTtlKey(lockType,lockKey)];
-	cb(null);
+	var that = this;
+	var removeTtlFn = that.config.removeTtl || function(ockType,lockKey,cb){
+		delete that.ttlList[that.getTtlKey(lockType,lockKey)];
+		cb(null);
+	}
+	removeTtlFn.call(that,lockType,lockKey,cb);
 }
 module.exports = ASYNCLOCK;
