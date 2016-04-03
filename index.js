@@ -1,3 +1,5 @@
+var EventEmitter = require('events').EventEmitter; 
+var event = new EventEmitter(); 
 function isType(obj,type){
 	return Object.prototype.toString.call(obj) === '[object '+type+']';
 }
@@ -17,7 +19,8 @@ var returnConst = {
 	code : {
 		success:0,
 		error:1,
-		lock:2
+		lock:2,
+		timeout:3
 	},
 	msg : {
 		ok : 'ok'
@@ -30,6 +33,7 @@ function ASYNCLOCK(config){
 	this.store = {};
 	this.config = config;
 	this.ttlList = {};
+	this._startWatchTtl();
 }
 ASYNCLOCK.TTL_NAMESPACE = 'ttl-';
 ASYNCLOCK.prototype.getStoreKey = function(lockType,lockKey){
@@ -55,7 +59,9 @@ ASYNCLOCK.prototype.addLock = function(lockType,lockKey,ttl,cb){
 					return cb(null,{code:returnConst.code.lock,msg:that.getStoreKey(lockType,lockKey) + ' is locked.'});
 				}else{
 					that.store[that.getStoreKey(lockType,lockKey)] = true;
-					cb(null,{code:returnConst.code.success,msg:returnConst.msg.ok});
+					that.setTtl(lockType,lockKey,ttl,function(err){
+						cb(err,{code:returnConst.code.success,msg:returnConst.msg.ok});
+					})					
 				}
 			}
 		})
@@ -68,7 +74,13 @@ ASYNCLOCK.prototype.removeLock = function(lockType,lockKey,cb){
 		delete that.store[that.getStoreKey(lockType,lockKey)];
 		cb(null);
 	}
-	removeLockFn.call(that,lockType,lockKey,cb);
+	removeLockFn.call(that,lockType,lockKey,function(err){
+		if(!err){
+			that.removeTtl(lockType,lockKey,cb);
+		}else{
+			cb(err);
+		}
+	});
 }
 ASYNCLOCK.prototype.checkLock = function(lockType,lockKey,cb){
 	var that = this;
@@ -86,7 +98,7 @@ ASYNCLOCK.prototype.setTtl = function(lockType,lockKey,ttl,cb){
 	setTtlFn.call(that,lockType,lockKey,ttl,cb);
 }
 ASYNCLOCK.prototype.getTtl = function(cb){
-	//todo:format return data
+	//todo:format return data,get this instance
 	var that = this;
 	var getTtlFn = that.config.getTtl || function(cb){
 		cb(null,that.ttlList);
@@ -100,5 +112,25 @@ ASYNCLOCK.prototype.removeTtl = function(lockType,lockKey,cb){
 		cb(null);
 	}
 	removeTtlFn.call(that,lockType,lockKey,cb);
+}
+ASYNCLOCK.prototype._pickTtlKey = function(ttlkey){
+	ttlkey = ttlkey.replace(this.config.namespace+ASYNCLOCK.TTL_NAMESPACE,'');
+	return ttlkey.split('_');
+}
+ASYNCLOCK.prototype._startWatchTtl = function(){
+	var that = this;
+	setInterval(function(){
+		var now = Date.now();
+		that.getTtl(function(err,ttl){
+			for(var key in ttl){
+				if(Number(ttl[key]) <= now){
+					delete ttl[key];
+					var timeOutReturn = that._pickTtlKey();
+					event.emit(that.config.namespace+ASYNCLOCK.TTL_NAMESPACE,{lockType:timeOutReturn[0],lockKey:timeOutReturn[1],code:returnConst.code.timeout});
+				}
+			}
+		})
+	},1000);
+	
 }
 module.exports = ASYNCLOCK;
