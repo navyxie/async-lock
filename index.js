@@ -30,6 +30,7 @@ function ASYNCLOCK(config){
 	//config is obj : addLock,removeLock,checkLock,setTtl,getTtl
 	if(!isObject(config)) config = {};
 	if(!config.namespace) config.namespace = 'asynclock-';
+	ASYNCLOCK.NAMESPACE = config.namespace;
 	this.store = {};
 	this.config = config;
 	this.ttlList = {};
@@ -90,6 +91,9 @@ ASYNCLOCK.prototype.checkLock = function(lockType,lockKey,cb){
 	checkLockFn.call(that,lockType,lockKey,cb);
 }
 ASYNCLOCK.prototype.setTtl = function(lockType,lockKey,ttl,cb){
+	if(!ttl){
+		return cb(null);
+	}
 	var that = this;
 	var setTtlFn = that.config.setTtl || function(lockType,lockKey,ttl,cb){
 		that.ttlList[that.getTtlKey(lockType,lockKey)] = Date.now() + ttl*1000;
@@ -125,7 +129,7 @@ ASYNCLOCK.prototype._startWatchTtl = function(){
 			for(var key in ttl){
 				if(Number(ttl[key]) <= now){
 					delete ttl[key];
-					var timeOutReturn = that._pickTtlKey();
+					var timeOutReturn = that._pickTtlKey(key);
 					event.emit(that.config.namespace+ASYNCLOCK.TTL_NAMESPACE,{lockType:timeOutReturn[0],lockKey:timeOutReturn[1],code:returnConst.code.timeout});
 				}
 			}
@@ -133,4 +137,5 @@ ASYNCLOCK.prototype._startWatchTtl = function(){
 	},1000);
 	
 }
+ASYNCLOCK.event = event;
 module.exports = ASYNCLOCK;

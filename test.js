@@ -1,5 +1,7 @@
 var should = require('should');
 var ASYNCLOCK = require('./index');
+// var EventEmitter = require('events').EventEmitter; 
+// var event = new EventEmitter(); 
 describe('async-lock',function(){
 	var AsyncLock = new ASYNCLOCK();
 	describe('addLock',function(){
@@ -39,9 +41,26 @@ describe('async-lock',function(){
 		it('addLock again,should be ok',function(done){
 			AsyncLock.addLock('buy','test',function(err,res){
 				res.code.should.be.equal(0);
-				done(err);
+				AsyncLock.removeLock('buy','test',function(err){
+					done(err);
+				})		
 			})
 		});
 	});
-	
+	describe('addLock ttl',function(){
+		it('timeout',function(done){
+			AsyncLock.addLock('buy','test',0.1,function(err,res){
+				res.code.should.be.equal(0);
+				done(err);
+			});
+		});
+		it('event on timeout',function(done){
+			ASYNCLOCK.event.on(ASYNCLOCK.NAMESPACE+ASYNCLOCK.TTL_NAMESPACE,function(data){
+				data.lockType.should.be.equal('buy');
+				data.lockKey.should.be.equal('test');
+				data.code.should.be.equal(3);
+				done(null);
+			});
+		})
+	})
 })
