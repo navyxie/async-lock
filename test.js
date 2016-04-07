@@ -63,4 +63,30 @@ describe('async-lock',function(){
 			});
 		})
 	})
+});
+describe('async-lock-custom',function(){
+	// var AsyncLock = new ASYNCLOCK({
+	// 	namespace:'async-lock-custom-',
+	// 	addLock:function(lockType,lockKey,ttl,cb){
+
+	// 	},
+	// 	removeLock:function(){
+
+	// 	},
+	// 	checkLock:function(){
+
+	// 	},
+	// 	setTtl:function(){
+
+	// 	},
+	// 	getTtl:function(){
+
+	// 	},
+	// 	removeTtl:function(){
+
+	// 	}
+	// });
+	describe('addLock',function(){
+
+	})
 })
