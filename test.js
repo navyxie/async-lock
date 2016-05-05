@@ -1,92 +1,86 @@
 var should = require('should');
 var ASYNCLOCK = require('./index');
-// var EventEmitter = require('events').EventEmitter; 
-// var event = new EventEmitter(); 
+var async = require('async');
 describe('async-lock',function(){
-	var AsyncLock = new ASYNCLOCK();
-	describe('addLock',function(){
-		it('should be ok',function(done){
-			AsyncLock.addLock('buy','test',function(err,res){
-				res.code.should.be.equal(0);
-				done(err);
-			})
+	this.timeout(10000);
+	describe('data in memory',function(){
+		var AsyncLock;
+		before(function(){
+			AsyncLock = new ASYNCLOCK();
 		});
-		it('should be not ok',function(done){
-			AsyncLock.addLock('buy','test',function(err,res){
-				res.code.should.be.equal(2);
-				done(err);
-			})
-		});
-	});
-	describe('checkLock',function(){
-		it('should be ok',function(done){
-			AsyncLock.checkLock('buy','test',function(err,isLock){
-				isLock.should.be.true();
-				done(err);
-			})
-		});
-	});
-	describe('removeLock',function(){
-		it('should be ok',function(done){
-			AsyncLock.removeLock('buy','test',function(err){
-				done(err);
-			});	
-		});
-		it('checkLock,should be unlock',function(done){
-			AsyncLock.checkLock('buy','test',function(err,isLock){
-				isLock.should.be.false();
-				done(err);
-			})
-		});
-		it('addLock again,should be ok',function(done){
-			AsyncLock.addLock('buy','test',function(err,res){
-				res.code.should.be.equal(0);
-				AsyncLock.removeLock('buy','test',function(err){
-					done(err);
-				})		
-			})
-		});
-	});
-	describe('addLock ttl',function(){
-		it('timeout',function(done){
-			AsyncLock.addLock('buy','test',0.1,function(err,res){
-				res.code.should.be.equal(0);
-				done(err);
+		describe('#lock()',function(){
+			var count = 0;
+			function testLock(cb){
+				AsyncLock.lock('buy',2,function(err,data){
+					if(!err){
+						count++;
+					}
+					cb(err,data);
+				})
+			}
+			it('should be lock ok',function(done){
+				async.parallel([
+					function(cb){
+						testLock(cb);
+					},
+					function(cb){
+						testLock(cb);
+					}
+				],function(err,data){
+					count.should.be.equal(1);
+					done();
+				}) 
 			});
-		});
-		it('event on timeout',function(done){
-			ASYNCLOCK.event.on(ASYNCLOCK.NAMESPACE+ASYNCLOCK.TTL_NAMESPACE,function(data){
-				data.lockType.should.be.equal('buy');
-				data.lockKey.should.be.equal('test');
-				data.code.should.be.equal(3);
-				done(null);
+			it('should be lock ttl ok',function(done){
+				count = 0;
+				setTimeout(function(){
+					testLock(function(err,data){
+						count.should.be.equal(1);
+						done(err);
+					})
+				},2001)
+			})
+		})
+		describe('#unlock()',function(){
+			var count = 0;
+			function testLock(cb){
+				AsyncLock.lock('pay',2,function(err,data){
+					if(!err){
+						count++;	
+						setTimeout(function(){
+							AsyncLock.unlock('pay',function(err,data){
+								cb(err,data);
+							})
+						},1000);						
+					}else{
+						cb(err,data);
+					}
+				})
+			}
+			it('should be ok unlock',function(done){
+				async.parallel([
+					function(cb){
+						testLock(cb);
+					},
+					function(cb){
+						testLock(cb);
+					},
+					function(cb){
+						testLock(cb);
+					}
+				],function(){
+					count.should.be.equal(1);
+					done();
+				});
 			});
+			it('should be ok unlock ttl',function(done){
+				setTimeout(function(){
+					testLock(function(err,data){
+						count.should.be.equal(2);
+						done(err);
+					})
+				},1001);
+			})
 		})
 	})
 });
-describe('async-lock-custom',function(){
-	// var AsyncLock = new ASYNCLOCK({
-	// 	namespace:'async-lock-custom-',
-	// 	addLock:function(lockType,lockKey,ttl,cb){
-
-	// 	},
-	// 	removeLock:function(){
-
-	// 	},
-	// 	checkLock:function(){
-
-	// 	},
-	// 	setTtl:function(){
-
-	// 	},
-	// 	getTtl:function(){
-
-	// 	},
-	// 	removeTtl:function(){
-
-	// 	}
-	// });
-	describe('addLock',function(){
-
-	})
-})
