@@ -1,10 +1,10 @@
 {
   "name": "node-async-lock",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "node async lock",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test.js"
+    "test": "npm install && mocha test.js"
   },
   "repository": {
     "type": "git",
@@ -16,9 +16,13 @@
     "流程",
     "控制"
   ],
+  "dependencies":{
+    "store-ttl":"^0.0.1"
+  },
   "devDependencies": {
     "mocha": "^2.2.5",
-    "should": "^7.0.2"
+    "should": "^7.0.2",
+    "async":"^2.0.0"
   },
   "author": {
     "name": "navyxie"
