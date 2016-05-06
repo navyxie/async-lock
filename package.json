@@ -17,7 +17,7 @@
     "控制"
   ],
   "dependencies":{
-    "store-ttl":"^0.0.1"
+    "store-ttl":"^0.0.3"
   },
   "devDependencies": {
     "mocha": "^2.2.5",
