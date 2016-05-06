@@ -4,16 +4,24 @@ function isType(obj,type){
 function isObject(obj){
   return isType(obj,'Object');
 }
+function isFunction(fn){
+  return isType(fn,'Function')
+}
 var STORE = require('store-ttl');
 function ASYNCLOCK(config){
   if(!isObject(config)){
     config = {};
   }
   config.namespace = config.namespace || 'async-lock-ttl-';
+  this.config = config;
   this._store = new STORE(config);
 }
 ASYNCLOCK.prototype.lock = function(key,ttl,callback){
   var that = this;
+  if(isFunction(ttl)){
+    callback = ttl;
+    ttl = this.config.ttl;
+  }
   this._store.get(key,function(err,data){
     if(err){
       return callback(err);
