@@ -7,15 +7,6 @@ function isObject(obj){
 function isFunction(fn){
   return isType(fn,'Function')
 }
-function copyValProperty(obj){
-  var res = {};
-  for(var key in obj){
-    if(key !== 'get' || key !== 'set' || key !== 'remove'){
-      res[key] = obj[key];
-    }
-  }
-  return res;
-}
 var STORE = require('store-ttl');
 function ASYNCLOCK(config){
   if(!isObject(config)){
@@ -24,7 +15,7 @@ function ASYNCLOCK(config){
   config.namespace = config.namespace || 'async-lock-ttl-';
   this.config = config;
   this._store = new STORE(config);
-  this._cacheStore = new STORE(copyValProperty(config));
+  this._cacheStore = new STORE({ttl:config.ttl,namespace:config.namespace});
 }
 ASYNCLOCK.prototype.lock = function(key,ttl,callback){
   var that = this;
